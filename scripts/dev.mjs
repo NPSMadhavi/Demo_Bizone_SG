@@ -146,6 +146,15 @@ const webEnv = {
   NODE_ENV: "development",
 };
 
+const workspaceDb = path.join(root, "node_modules", "@workspace", "db");
+if (!fs.existsSync(workspaceDb)) {
+  console.error(
+    "Workspace packages are not linked (missing node_modules/@workspace/db).",
+  );
+  console.error("Run `npm install` from the repo root first, then `npm run dev`.");
+  process.exit(1);
+}
+
 console.log("Building API...");
 await runSync([path.join(apiDir, "build.mjs")], apiEnv, apiDir);
 

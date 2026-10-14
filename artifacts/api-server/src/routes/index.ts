@@ -45,9 +45,13 @@ import operationsRouter from "./operations";
 import inventoryRouter from "./inventory";
 import reportsRouter from "./reports";
 import globalSearchRouter from "./global-search";
+import salesPersonsRouter from "./sales-persons";
+import posSalesRouter from "./pos-sales";
+import { enforceAssignedModules } from "../lib/module-guard.js";
 
 const router: IRouter = Router();
 
+router.use(enforceAssignedModules);
 router.use(healthRouter);
 router.use(authRouter);
 router.use(globalSearchRouter);
@@ -70,6 +74,8 @@ router.use(posScaleRouter);
 router.use(stockSerialsRouter);
 router.use(vendorsRouter);
 router.use(customersRouter);
+router.use(salesPersonsRouter);
+router.use(posSalesRouter);
 router.use(emailContactsRouter);
 router.use(maintenanceRouter);
 router.use(vendorInvoicesRouter);

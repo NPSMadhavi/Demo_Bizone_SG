@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import pg from "pg";
+import { applySalesPosSchema } from "../migrate-drizzle-columns.js";
 
 const prepared = new Map<string, Promise<pg.Pool | null>>();
 const pools = new Map<string, pg.Pool>();
@@ -192,30 +193,10 @@ async function tableCount(connectionString: string): Promise<number> {
 }
 
 /**
- * Make sure a company's PostgreSQL database has the app schema and only that company's rows.
- * Returns null when this company still uses the shared database.
+ * Always use the shared DATABASE_URL pool. Per-company PostgreSQL databases are not used.
  */
-export async function openCompanyPool(companyId: number): Promise<pg.Pool | null> {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) return null;
-
-  const meta = await withClient(databaseUrl, async (client) => {
-    const result = await client.query("SELECT database_name FROM companies WHERE id = $1", [companyId]);
-    return (result.rows[0]?.database_name as string | undefined) ?? "";
-  });
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(meta)) return null;
-
-  const existing = prepared.get(meta);
-  if (existing) return existing;
-
-  const pending = prepareCompanyPool(databaseUrl, meta, companyId);
-  prepared.set(meta, pending);
-  try {
-    return await pending;
-  } catch (err) {
-    prepared.delete(meta);
-    throw err;
-  }
+export async function openCompanyPool(_companyId: number): Promise<pg.Pool | null> {
+  return null;
 }
 
 async function prepareCompanyPool(databaseUrl: string, databaseName: string, companyId: number): Promise<pg.Pool> {
@@ -252,5 +233,6 @@ async function prepareCompanyPool(databaseUrl: string, databaseName: string, com
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS ir8a_employers_company_id_idx ON ir8a_employers (company_id)`);
+  await applySalesPosSchema((statement) => pool.query(statement));
   return pool;
 }

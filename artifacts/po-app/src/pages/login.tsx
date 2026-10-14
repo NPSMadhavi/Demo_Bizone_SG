@@ -123,7 +123,7 @@ export default function Login() {
 
   useEffect(() => {
     if (!isLoading && user && !holdRedirect.current) {
-      setLocation("/dashboard");
+      setLocation("/");
     }
   }, [isLoading, user, setLocation]);
 
@@ -234,7 +234,7 @@ export default function Login() {
           toast({ title: "Login Successful" });
           await doorDone.current;
           holdRedirect.current = false;
-          setLocation("/dashboard");
+          setLocation("/");
         },
         onError: (error: Error & { message?: string }) => {
           clearDoorTimers();

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
-import { type AppModule, MODULE_GROUPS } from "@/contexts/auth-modules";
+import { type AppModule, MODULE_GROUPS, POS_UI_HIDDEN, hasPosChannelAccess } from "@/contexts/auth-modules";
 import {
   LayoutDashboard,
   FileText,
@@ -46,7 +46,6 @@ import {
   Monitor,
   KeyRound,
   DollarSign,
-  Briefcase,
   Warehouse,
   BarChart3,
   Store,
@@ -120,10 +119,9 @@ function getGroupForRoute(loc: string): string | null {
   ) return "documents";
   if (loc.startsWith("/projects")) return "projects";
   if (
-    loc.startsWith("/licenses") ||
     loc.startsWith("/employees") ||
     loc.startsWith("/payroll")
-  ) return "operations";
+  ) return "payroll";
   if (loc.startsWith("/point-of-sale")) return "point_of_sale";
   if (loc.startsWith("/stock") || loc.startsWith("/inventory")) return "inventory";
   if (
@@ -315,7 +313,21 @@ function UserMenu() {
   const { user, logout, isAdmin } = useAuth();
   const [, setLocation] = useLocation();
   const collapsed = React.useContext(SidebarCtx);
+  const emailRef = React.useRef<HTMLDivElement>(null);
   const hasMultiple = (user?.companies?.length ?? 0) > 1;
+
+  React.useLayoutEffect(() => {
+    const el = emailRef.current;
+    if (!el || collapsed) return;
+    el.style.transform = "none";
+    const parent = el.parentElement;
+    if (!parent) return;
+    if (el.scrollWidth > parent.clientWidth) {
+      el.style.transform = `scaleX(${parent.clientWidth / el.scrollWidth})`;
+      el.style.transformOrigin = "left center";
+    }
+  }, [user?.username, collapsed]);
+
   if (!user) return null;
 
   const avatarEl = (
@@ -365,10 +377,12 @@ function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="w-full flex items-center gap-2.5 px-4 py-3 hover:bg-muted/50 transition-colors outline-none min-w-0">
+        <button className="w-full flex items-center gap-2 px-3 py-3 hover:bg-muted/50 transition-colors outline-none min-w-0">
           {avatarEl}
-          <div className="text-left min-w-0 flex-1 overflow-hidden">
-            <div className="text-xs font-medium leading-snug break-all">{user.username}</div>
+          <div className="min-w-0 flex-1 overflow-hidden text-left">
+            <div ref={emailRef} className="whitespace-nowrap text-xs font-medium leading-none">
+              {user.username}
+            </div>
             {isAdmin && <div className="text-[11px] text-muted-foreground leading-tight capitalize mt-0.5">{user.role}</div>}
           </div>
         </button>
@@ -407,7 +421,7 @@ function UserMenu() {
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { user, hasModuleAccess, selectedCompany } = useAuth();
+  const { user, hasModuleAccess, selectedCompany, isAdmin } = useAuth();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [openGroup, setOpenGroup] = React.useState<string | null>(null);
   const [collapsed, setCollapsed] = React.useState(() => {
@@ -440,6 +454,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("bizone-sidebar-collapsed", onCollapse);
     };
   }, []);
+
+  React.useEffect(() => {
+    const path = location.split("?")[0];
+    const collapseForPos = /^\/point-of-sale\/(retail|supermarket|restaurants|pharmacy|electronics)$/.test(path);
+    if (collapseForPos) {
+      setCollapsed((current) => {
+        if (collapsedBeforeForce.current === null) collapsedBeforeForce.current = current;
+        return true;
+      });
+      return;
+    }
+    const previous = collapsedBeforeForce.current;
+    collapsedBeforeForce.current = null;
+    if (previous !== null) setCollapsed(previous);
+  }, [location]);
 
   const toggleCollapsed = () => {
     setCollapsed(prev => {
@@ -488,8 +517,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const directoryModules = ["vendors", "customers", "address_book"] as const;
   // Directory ONLY for these three — never via PO/Invoice/Documents access
   const hasDirectory = directoryModules.some((m) => hasModuleAccess(m as AppModule));
-  const hasOperations =
-    hasModuleAccess("licenses") ||
+  const hasPayroll =
     hasModuleAccess("employees") ||
     hasModuleAccess("payroll");
   const inventoryModules = ["warehouses", "stock_items", "stock_transfer", "inventory_reports", "sales_person_wise_report", "batch_expiry"] as const;
@@ -510,23 +538,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
       )}
 
       <NavGroup
-        id="operations"
-        label="Administration"
-        icon={Briefcase}
-        isOpen={openGroup === "operations"}
+        id="payroll"
+        label="Payroll"
+        icon={Banknote}
+        isOpen={openGroup === "payroll"}
         onToggle={toggleGroup}
-        visible={hasOperations}
+        visible={hasPayroll}
         hasActive={
-          location.startsWith("/licenses") ||
           location.startsWith("/employees") ||
           location.startsWith("/payroll")
         }
       >
-        {(hasModuleAccess("licenses")) && (
-          <NavItem href="/licenses" icon={KeyRound} active={location.startsWith("/licenses")} inGroup>
-            Licenses
-          </NavItem>
-        )}
         {(hasModuleAccess("employees")) && (
           <NavItem href="/employees" icon={Users} active={location.startsWith("/employees")} inGroup>
             Employees
@@ -562,6 +584,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </NavItem>
         )}
       </NavGroup>
+
+      {hasModuleAccess("assets") && (
+        <NavItem
+          href="/assets"
+          icon={Monitor}
+          active={location.startsWith("/assets")}
+        >
+          Fixed Assets
+        </NavItem>
+      )}
+
+      {hasModuleAccess("licenses") && (
+        <NavItem
+          href="/licenses"
+          icon={KeyRound}
+          active={location.startsWith("/licenses")}
+        >
+          Licenses
+        </NavItem>
+      )}
 
       {/* Projects — hidden from sidebar; routes/functionality kept */}
       {/* {(hasModuleAccess("projects")) && (
@@ -673,24 +715,56 @@ export function Shell({ children }: { children: React.ReactNode }) {
         icon={Store}
         isOpen={openGroup === "point_of_sale"}
         onToggle={toggleGroup}
-        visible={hasModuleAccess("point_of_sale")}
+        visible={
+          !POS_UI_HIDDEN && (
+          hasPosChannelAccess(hasModuleAccess, "pos_retail") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_supermarket") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_restaurants") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_pharmacy") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_electronics") ||
+          hasModuleAccess("pos_reports")
+          )
+        }
         hasActive={location.startsWith("/point-of-sale")}
       >
+        {hasPosChannelAccess(hasModuleAccess, "pos_retail") && (
         <NavItem href="/point-of-sale/retail" icon={Store} active={location.startsWith("/point-of-sale/retail")} inGroup>
           Retail
         </NavItem>
+        )}
+        {hasPosChannelAccess(hasModuleAccess, "pos_supermarket") && (
         <NavItem href="/point-of-sale/supermarket" icon={ShoppingBag} active={location.startsWith("/point-of-sale/supermarket")} inGroup>
           Supermarket
         </NavItem>
+        )}
+        {hasPosChannelAccess(hasModuleAccess, "pos_restaurants") && (
         <NavItem href="/point-of-sale/restaurants" icon={UtensilsCrossed} active={location.startsWith("/point-of-sale/restaurants")} inGroup>
           Restaurants
         </NavItem>
+        )}
+        {hasPosChannelAccess(hasModuleAccess, "pos_pharmacy") && (
         <NavItem href="/point-of-sale/pharmacy" icon={Pill} active={location.startsWith("/point-of-sale/pharmacy")} inGroup>
           Pharmacy
         </NavItem>
+        )}
+        {hasPosChannelAccess(hasModuleAccess, "pos_electronics") && (
         <NavItem href="/point-of-sale/electronics" icon={Monitor} active={location.startsWith("/point-of-sale/electronics")} inGroup>
           Electronics
         </NavItem>
+        )}
+        {!isAdmin && (
+          hasModuleAccess("pos_reports") ||
+          hasModuleAccess("point_of_sale") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_retail") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_supermarket") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_restaurants") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_pharmacy") ||
+          hasPosChannelAccess(hasModuleAccess, "pos_electronics")
+        ) && (
+        <NavItem href="/point-of-sale/reports" icon={BarChart3} active={location.startsWith("/point-of-sale/reports")} inGroup>
+          Reports
+        </NavItem>
+        )}
       </NavGroup>
       {hasModuleAccess("bill_of_materials") && (
         <NavItem href="/bill-of-materials" icon={Boxes} active={location.startsWith("/bill-of-materials")}>
@@ -902,16 +976,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
       </NavGroup>
 
-      {hasModuleAccess("assets") && (
-        <NavItem
-          href="/assets"
-          icon={Monitor}
-          active={location.startsWith("/assets")}
-        >
-          Fixed Assets
-        </NavItem>
-      )}
-
       {(isSingapore && hasModuleAccess("accounting_bank_recon")) && (
         <NavItem
           href="/accounting/bank-reconciliation"
@@ -1014,7 +1078,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="min-h-[100dvh] flex flex-col md:flex-row bg-muted/20"
-      style={{ ["--app-sidebar-width" as string]: collapsed ? "3.5rem" : "16rem" }}
+      style={{ ["--app-sidebar-width" as string]: sidebarHidden ? "0px" : collapsed ? "3.5rem" : "16rem" }}
     >
       {/* ── Mobile header ────────────────────────────────────── */}
       <header className="md:hidden flex items-center justify-between px-4 h-14 border-b bg-card">
