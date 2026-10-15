@@ -1,4 +1,5 @@
 import * as zod from "zod";
+import { PASSWORD_RULE_MESSAGE, isMixedPassword } from "./passwordRule";
 
 function sgPhoneDigits(value: string): string {
   let digits = value.replace(/\D/g, "");
@@ -9,7 +10,7 @@ function sgPhoneDigits(value: string): string {
 export const RegisterBody = zod.object({
   fullName: zod.string().min(2, "Full name is required"),
   email: zod.string().email("Valid email is required"),
-  password: zod.string().length(8, "Password must be 8 characters"),
+  password: zod.string().refine(isMixedPassword, { message: PASSWORD_RULE_MESSAGE }),
   phoneNumber: zod
     .string()
     .min(1, "Phone number is required")

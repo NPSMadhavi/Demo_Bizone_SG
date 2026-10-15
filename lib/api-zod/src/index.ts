@@ -3,3 +3,4 @@ export * from "./generated/api";
 // Zod schemas above and causes TS2308 duplicate-export errors.
 // All required types can be inferred from the Zod schemas via z.infer<typeof X>.
 export { RegisterBody } from "./registerBody";
+export { PASSWORD_LENGTH, PASSWORD_RULE_MESSAGE, isMixedPassword } from "./passwordRule";

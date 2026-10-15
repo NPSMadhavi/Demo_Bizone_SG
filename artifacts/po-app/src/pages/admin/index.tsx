@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/auth-context";
+import { PASSWORD_RULE_MESSAGE, validateMixedPassword } from "@/lib/password";
 import { MODULE_LABELS, MODULE_GROUPS, ALL_MODULES, POS_CHANNEL_MODULES, modulesForBusinessType, type AppModule, type ModuleGroup } from "@/contexts/auth-modules";
 
 /**
@@ -455,8 +456,14 @@ export default function Admin() {
   function validate(): string | null {
     if (!form.username.trim()) return "Email is required.";
     if (!isEmail(form.username)) return "Enter a valid email address.";
-    if (mode === "create" && form.password.length < 6) return "Password must be at least 6 characters.";
-    if (mode === "edit" && form.password && form.password.length < 6) return "Password must be at least 6 characters.";
+    if (mode === "create") {
+      const passwordError = validateMixedPassword(form.password);
+      if (passwordError) return passwordError;
+    }
+    if (mode === "edit" && form.password) {
+      const passwordError = validateMixedPassword(form.password);
+      if (passwordError) return passwordError;
+    }
     if (form.role !== "admin") {
       if (form.companyAccess.length === 0) return "Select a company.";
       if (form.companyAccess.every((c) => c.modules.length === 0)) return "Select at least one module for the selected company.";
@@ -704,11 +711,13 @@ export default function Admin() {
               <Input
                 id="user-password"
                 type="text"
-                placeholder={mode === "edit" ? "••••••••" : "Min 6 characters"}
+                maxLength={8}
+                placeholder={mode === "edit" ? "••••••••" : "Ab1@xYz2"}
                 value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value.slice(0, 8) }))}
                 className="[-webkit-text-security:disc]"
               />
+              <p className="text-[11px] text-muted-foreground">{PASSWORD_RULE_MESSAGE}</p>
             </div>
 
             <div className="space-y-1.5">

@@ -7,6 +7,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/auth-context";
 import { BUSINESS_TYPES } from "@/contexts/auth-modules";
+import { PASSWORD_RULE_MESSAGE, validateMixedPassword } from "@/lib/password";
 import { SyncBridgeDatePicker } from "@/components/ui/sync-bridge-date-picker";
 import { useToast } from "@/hooks/use-toast";
 import { clearBrowserSessionLive, setTabSessionId } from "@/lib/browser-session";
@@ -115,8 +116,9 @@ function validateSecurityStep(personal: PersonalForm, company: CompanyForm): str
   if (!company.fy_from || !company.fy_to) return "Select the financial year";
   if (company.fy_to < company.fy_from) return "Financial year end date must be on or after the start date";
   if (!personal.password) return "Password is required";
-  if (personal.password.length !== 8) return "Password must be 8 characters";
-  if (personal.confirm_password.length !== 8) return "Confirmation password must be 8 characters";
+  const passwordError = validateMixedPassword(personal.password);
+  if (passwordError) return passwordError;
+  if (!personal.confirm_password) return "Confirmation password is required";
   if (personal.password !== personal.confirm_password) return "Passwords do not match";
   return null;
 }
@@ -493,6 +495,7 @@ export default function Register() {
           </div>
         </label>
       </div>
+      <p className="text-[11px] leading-4 text-gray-500">{PASSWORD_RULE_MESSAGE}. Example: Ab1@xYz2</p>
 
       <div className="mt-2 flex gap-3">
         <button
@@ -713,6 +716,7 @@ export default function Register() {
           </div>
         </label>
       </div>
+      <p className="text-[11px] leading-4 text-gray-500">{PASSWORD_RULE_MESSAGE}. Example: Ab1@xYz2</p>
 
       <div className="mt-3 flex gap-3">
         <button

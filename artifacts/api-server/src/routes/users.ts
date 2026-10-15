@@ -11,7 +11,7 @@ import {
 } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
-import { UpdateUserParams, DeleteUserParams } from "@workspace/api-zod";
+import { UpdateUserParams, DeleteUserParams, PASSWORD_RULE_MESSAGE, isMixedPassword } from "@workspace/api-zod";
 import { logAudit } from "../lib/audit.js";
 import { requirePermission } from "../lib/auth-middleware.js";
 import { getSalesPersonSummary } from "../lib/assigned-modules.js";
@@ -36,7 +36,7 @@ const CompanyAccessSchema = z
 
 const CreateUserPayload = z.object({
   username: z.string().min(1),
-  password: z.string().min(1),
+  password: z.string().refine(isMixedPassword, { message: PASSWORD_RULE_MESSAGE }),
   role: UserRoleSchema,
   companyAccess: CompanyAccessSchema,
   salesPersonId: z.number().int().positive().nullable().optional(),
@@ -44,7 +44,7 @@ const CreateUserPayload = z.object({
 
 const UpdateUserPayload = z.object({
   username: z.string().min(1).optional(),
-  password: z.string().min(1).optional(),
+  password: z.string().refine(isMixedPassword, { message: PASSWORD_RULE_MESSAGE }).optional(),
   role: UserRoleSchema.optional(),
   companyAccess: CompanyAccessSchema,
   salesPersonId: z.number().int().positive().nullable().optional(),

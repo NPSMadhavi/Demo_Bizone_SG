@@ -166,7 +166,7 @@ export default function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === "password") {
-      setForm((prev) => ({ ...prev, password: value.replace(/\D/g, "").slice(0, 8) }));
+      setForm((prev) => ({ ...prev, password: value.slice(0, 8) }));
       return;
     }
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -180,8 +180,8 @@ export default function Login() {
       return;
     }
 
-    if (!/^\d{8}$/.test(form.password)) {
-      toast({ title: "Password must be 8 digits", variant: "destructive" });
+    if (form.password.length !== 8) {
+      toast({ title: "Password must be 8 characters", variant: "destructive" });
       return;
     }
 
@@ -286,7 +286,6 @@ export default function Login() {
           <input
             type={showPassword ? "text" : "password"}
             name="password"
-            inputMode="numeric"
             maxLength={8}
             placeholder="Type your password"
             value={form.password}
