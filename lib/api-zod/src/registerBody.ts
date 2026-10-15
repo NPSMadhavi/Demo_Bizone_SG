@@ -20,9 +20,10 @@ export const RegisterBody = zod.object({
   companyEmail: zod.string().email("Valid company email is required"),
   companyAddress: zod.string().min(5, "Company address is required"),
   companyDomain: zod.string().min(3).optional(),
-  businessType: zod.enum(["trading", "non_trading", "shopping_malls", "manufacturing"], {
-    errorMap: () => ({ message: "Select a business type" }),
-  }),
+  businessType: zod.enum(
+    ["trading", "trading_services", "non_trading", "shopping_malls", "manufacturing"],
+    { errorMap: () => ({ message: "Select a business type" }) },
+  ),
   gstRegistrationNo: zod.string().optional(),
   financialYearFrom: zod.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Select the financial year start date"),
   financialYearTo: zod.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Select the financial year end date"),

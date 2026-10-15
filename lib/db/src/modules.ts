@@ -70,6 +70,7 @@ export type AppModuleKey = (typeof APP_ALL_MODULES)[number];
 
 export const BUSINESS_TYPES = [
   { id: "trading", label: "Trading Business" },
+  { id: "trading_services", label: "Trading & Services" },
   { id: "non_trading", label: "Non-Trading Business" },
   { id: "shopping_malls", label: "Shopping Malls" },
   { id: "manufacturing", label: "Manufacturing" },
@@ -119,6 +120,9 @@ export const BUSINESS_TYPE_MODULES: Record<BusinessTypeId, readonly AppModuleKey
     ...ACCOUNTING,
     ...SYSTEM,
   ],
+  trading_services: APP_ALL_MODULES.filter(
+    (module) => module !== "point_of_sale" && !module.startsWith("pos_"),
+  ),
   non_trading: [
     "dashboard",
     ...SALES_WITHOUT_CREDIT,
